@@ -1,0 +1,24 @@
+.practice-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.camera-view {
+  width: 100%;
+  height: 300px;
+  background-color: #e5e7eb;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chatbox {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 10px;
+  margin-top: 10px;
+}

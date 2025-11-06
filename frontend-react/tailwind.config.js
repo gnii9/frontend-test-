@@ -1,17 +1,16 @@
-export default {
-  content: ["./index.html", "./src/**/*.{js,jsx,ts,tsx}"],
-  darkMode: 'class',
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: ['./src/**/*.{js,jsx,ts,tsx}', './public/index.html'],
   theme: {
     extend: {
       fontFamily: {
         sans: ['"Be Vietnam Pro"', 'system-ui', 'sans-serif'],
       },
       colors: {
-        primary: '#3B82F6',
-        secondary: '#8B5CF6',
-        accent: '#06B6D4',
+        primary: '#3B82F6',   // Xanh dương chính
+        secondary: '#8B5CF6', // Tím phụ
       },
     },
   },
   plugins: [],
-}
+};

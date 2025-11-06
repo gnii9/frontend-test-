@@ -3,8 +3,9 @@
 @tailwind utilities;
 
 @layer base {
-  html { font-family: 'Be Vietnam Pro', sans-serif; }
-  body { @apply bg-gradient-to-br from-blue-50 to-purple-50 min-h-screen; }
+  html {
+    font-family: 'Be Vietnam Pro', sans-serif;
+  }
 }
 
 @layer components {

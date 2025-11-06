@@ -1,82 +1,82 @@
-import { Link } from 'react-router-dom';
+// src/pages/ProfilePage.jsx
+import React from 'react';
 import { useAuth } from '../context/AuthContext';
-
-// Dữ liệu giả lập
-const learnedTopics = ["Bảng chữ cái", "Số đếm", "Gia đình"];
-const progress = { "Bảng chữ cái": 80, "Số đếm": 60, "Gia đình": 30 };
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const [step, setStep] = useState(1); // 1: Form, 2: OTP
+  const [form, setForm] = useState({ oldPassword: '', newPassword: '', confirm: '' });
+  const [error, setError] = useState('');
+
+  const handleChangePassword = (e) => {
+    e.preventDefault();
+    if (form.newPassword !== form.confirm) {
+      setError('Mật khẩu mới không khớp');
+      return;
+    }
+    setStep(2);
+  };
+
+  const confirmOTP = (e) => {
+    e.preventDefault();
+    // Xử lý OTP qua Gmail (giả lập)
+    setError('Mật khẩu đã được thay đổi thành công!');
+    setTimeout(() => {
+      setStep(1);
+      setForm({ oldPassword: '', newPassword: '', confirm: '' });
+    }, 2000);
+  };
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50">
-        <div className="text-center">
-          <p className="text-xl mb-4">Vui lòng đăng nhập để xem hồ sơ</p>
-          <Link to="/login" className="px-6 py-3 bg-primary text-white rounded-full font-semibold hover:bg-blue-700">Đăng nhập</Link>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Vui lòng đăng nhập để xem trang cá nhân.</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 py-12">
-      <div className="container mx-auto px-6">
-        <Link to="/" className="text-primary hover:underline mb-6 inline-block">← Quay lại</Link>
-
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-4xl mx-auto">
-          <div className="flex items-center gap-6 mb-8">
-            <div className="w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-white text-2xl font-bold">
-              {user.name?.[0] || user.email?.[0]?.toUpperCase() || "U"}
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">{user.name || user.email}</h1>
-              <p className="text-gray-600">Thành viên VSign AI</p>
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-xl font-bold text-secondary mb-4">Khóa học đã tham gia</h2>
-              {learnedTopics.length > 0 ? (
-                <div className="space-y-4">
-                  {learnedTopics.map((topic) => (
-                    <div key={topic} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-gray-50 rounded-xl gap-4 sm:gap-2">
-                      <div className="flex items-center gap-3">
-                        <span className="text-xl">
-                          {topic === "Bảng chữ cái" ? "🔡" : topic === "Số đếm" ? "🔢" : "👨‍👩‍👧"}
-                        </span>
-                        <span className="font-medium">{topic}</span>
-                      </div>
-                      <div className="flex items-center gap-4 w-full sm:w-auto">
-                        <div className="w-full sm:w-32 bg-gray-200 rounded-full h-3">
-                          <div
-                            className="bg-primary h-3 rounded-full transition-all"
-                            style={{ width: `${progress[topic]}%` }}
-                          />
-                        </div>
-                        <span className="text-sm font-medium w-10 text-right">{progress[topic]}%</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-500">Chưa tham gia khóa học nào</p>
-              )}
-            </div>
-
-            <div className="text-center mt-8">
-              <Link
-                to="/courses"
-                className="inline-block px-6 py-3 bg-primary text-white rounded-full font-semibold hover:bg-blue-700"
-              >
-                Tiếp tục học
-              </Link>
-            </div>
-          </div>
+    <div className="container mx-auto px-6 py-16">
+      <h1 className="text-3xl font-bold text-primary mb-8">Trang Cá Nhân</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-xl font-bold mb-4">Thông tin</h2>
+          <p><strong>Tên:</strong> {user.name}</p>
+          <p><strong>Email:</strong> {user.email}</p>
+          <button onClick={logout} className="btn-primary mt-4">Đăng xuất</button>
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-xl font-bold mb-4">Đổi mật khẩu</h2>
+          {step === 1 ? (
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div>
+                <label className="auth-label">Mật khẩu cũ</label>
+                <input type="password" className="auth-input" value={form.oldPassword} onChange={(e) => setForm({...form, oldPassword: e.target.value})} required />
+              </div>
+              <div>
+                <label className="auth-label">Mật khẩu mới</label>
+                <input type="password" className="auth-input" value={form.newPassword} onChange={(e) => setForm({...form, newPassword: e.target.value})} required />
+              </div>
+              <div>
+                <label className="auth-label">Xác nhận mật khẩu mới</label>
+                <input type="password" className="auth-input" value={form.confirm} onChange={(e) => setForm({...form, confirm: e.target.value})} required />
+              </div>
+              <button type="submit" className="btn-primary">Gửi OTP</button>
+            </form>
+          ) : (
+            <form onSubmit={confirmOTP} className="space-y-4">
+              <div>
+                <label className="auth-label">Mã OTP (gửi qua Gmail)</label>
+                <input type="text" className="auth-input text-center text-2xl" maxLength="4" value={form.otp} onChange={(e) => setForm({...form, otp: e.target.value.slice(0,4)})} required />
+              </div>
+              <button type="submit" className="btn-primary">Xác nhận & Đặt lại mật khẩu</button>
+              <button type="button" onClick={() => setStep(1)} className="auth-link w-full text-left">← Quay lại</button>
+            </form>
+          )}
         </div>
       </div>
     </div>
   );
 }
-  
