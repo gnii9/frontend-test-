@@ -1,28 +1,41 @@
-import { useTheme } from '../../context/ThemeContext';
+// src/components/common/ThemeToggle.jsx
+import React from 'react';
+import { useEffect, useState } from 'react';
+import './common.css';
+
 
 export default function ThemeToggle() {
-  const { darkMode, toggle } = useTheme();
+  // theme: 'light' | 'dark' | 'auto'
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const applyTheme = (mode) => {
+      root.classList.remove('dark');
+      if (mode === 'dark') root.classList.add('dark');
+      if (mode === 'auto') {
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (prefersDark) root.classList.add('dark');
+      }
+    };
+    applyTheme(theme);
+    localStorage.setItem('theme', theme);
+
+    if (theme === 'auto' && window.matchMedia) {
+      const mq = window.matchMedia('(prefers-color-scheme: dark)');
+      const handler = () => applyTheme('auto');
+      mq.addEventListener('change', handler);
+      return () => mq.removeEventListener('change', handler);
+    }
+  }, [theme]);
+
+  const cycleTheme = () => {
+    setTheme((prev) => (prev === 'light' ? 'dark' : prev === 'dark' ? 'auto' : 'light'));
+  };
 
   return (
-    <button
-      onClick={toggle}
-      className="relative w-14 h-8 bg-gray-300 dark:bg-gray-700 rounded-full transition-all duration-300 shadow-inner flex items-center px-1"
-    >
-      <div
-        className={`absolute w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 flex items-center justify-center ${
-          darkMode ? 'translate-x-6' : 'translate-x-0'
-        }`}
-      >
-        {darkMode ? (
-          <svg className="w-4 h-4 text-gray-800" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
-          </svg>
-        ) : (
-          <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.708.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" />
-          </svg>
-        )}
-      </div>
+    <button onClick={cycleTheme} className="theme-toggle">
+      {theme === 'light' ? 'Light' : theme === 'dark' ? 'Dark' : 'Auto'}
     </button>
   );
 }

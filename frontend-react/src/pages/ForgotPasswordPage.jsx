@@ -1,11 +1,11 @@
-// src/pages/LoginPage.jsx
 import React from 'react';
-import Login from '../auth/Login';
-export default function LoginPage() {
+import ForgotPassword from '../auth/ForgotPassword';
+
+export default function ForgotPasswordPage() {
   return (
     <section className="section-outer section-alt">
       <div className="container-1200 flex justify-center">
-        <Login />
+        <ForgotPassword />
       </div>
     </section>
   );
