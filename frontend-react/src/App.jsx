@@ -12,6 +12,7 @@ import LearningChatPage from './pages/LearningChatPage';
 import NotificationPage from './pages/NotificationPage';
 import SettingPage from './pages/SettingPage';
 import ProfilePage from './pages/ProfilePage';
+import StatisticsPage from './pages/StatisticsPage';
 import AdminDashboard from './pages/AdminDashboard';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 
@@ -33,6 +34,7 @@ function App() {
           <Route path="/notifications" element={<NotificationPage />} />
           <Route path="/settings" element={<SettingPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/statistics" element={<StatisticsPage />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         </Routes>

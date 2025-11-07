@@ -18,8 +18,11 @@ export default function Login() {
       return;
     }
     const ok = await loginWithEmail(form.email, form.password);
-    if (ok) navigate('/profile');
-    else setError('Đăng nhập thất bại');
+    if (ok) {
+      navigate('/profile');
+    } else {
+      setError('Đăng nhập thất bại');
+    }
   };
 
 

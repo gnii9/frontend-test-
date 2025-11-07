@@ -1,7 +1,7 @@
 // src/pages/QuizPage.jsx
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import '../components/home/home.css';
+import './pages.css';
 
 export default function QuizPage() {
   const { topicId } = useParams(); // lấy topicId từ URL
@@ -37,10 +37,10 @@ export default function QuizPage() {
     if (answer === quiz.answer) {
       setScore(score + 1);
       setStreak(streak + 1);
-      setFeedback('✅ Chính xác!');
+      setFeedback('Chính xác!');
     } else {
       setStreak(0);
-      setFeedback(`❌ Sai rồi. Đáp án đúng là "${quiz.answer}".`);
+      setFeedback(`Sai rồi. Đáp án đúng là "${quiz.answer}".`);
     }
     setAnswer('');
   };
@@ -48,7 +48,8 @@ export default function QuizPage() {
   if (!quiz) return <p className="text-center py-16">Không tìm thấy quiz cho chủ đề này.</p>;
 
   return (
-    <div className="max-w-2xl mx-auto px-6 py-16">
+    <section className="section-outer section-white">
+      <div className="container-1200 max-w-2xl">
       <h1 className="text-3xl font-bold text-primary mb-8">
         Quiz - Chủ đề {quiz.name}
       </h1>
@@ -85,6 +86,7 @@ export default function QuizPage() {
         <p className="text-lg">Điểm: {score}</p>
         <p className="text-lg">Streak: {streak} ngày</p>
       </div>
-    </div>
+      </div>
+    </section>
   );
 }

@@ -100,7 +100,7 @@ export default function PracticeAI() {
 
   return (
     <div className="practice-container">
-      <Link to="/" className="text-blue-600 hover:underline mb-6 inline-block">← Quay lại</Link>
+      <Link to="/" className="text-blue-600 hover:underline mb-6 inline-block">Quay lại</Link>
       <h1 className="text-3xl font-bold text-center mb-8">Học với Chatbot AI</h1>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-white rounded-2xl p-6 shadow-md">

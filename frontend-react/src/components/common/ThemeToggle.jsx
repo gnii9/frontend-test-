@@ -5,22 +5,37 @@ import './common.css';
 
 
 export default function ThemeToggle() {
-  const [darkMode, setDarkMode] = useState(localStorage.getItem('theme') === 'dark');
+  // theme: 'light' | 'dark' | 'auto'
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
 
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    localStorage.setItem('theme', darkMode ? 'dark' : 'light');
-  }, [darkMode]);
+    const root = document.documentElement;
+    const applyTheme = (mode) => {
+      root.classList.remove('dark');
+      if (mode === 'dark') root.classList.add('dark');
+      if (mode === 'auto') {
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (prefersDark) root.classList.add('dark');
+      }
+    };
+    applyTheme(theme);
+    localStorage.setItem('theme', theme);
 
-  const toggleTheme = () => setDarkMode(!darkMode);
+    if (theme === 'auto' && window.matchMedia) {
+      const mq = window.matchMedia('(prefers-color-scheme: dark)');
+      const handler = () => applyTheme('auto');
+      mq.addEventListener('change', handler);
+      return () => mq.removeEventListener('change', handler);
+    }
+  }, [theme]);
+
+  const cycleTheme = () => {
+    setTheme((prev) => (prev === 'light' ? 'dark' : prev === 'dark' ? 'auto' : 'light'));
+  };
 
   return (
-    <button onClick={toggleTheme} className="theme-toggle">
-      {darkMode ? '☀️' : '🌙'}
+    <button onClick={cycleTheme} className="theme-toggle">
+      {theme === 'light' ? 'Light' : theme === 'dark' ? 'Dark' : 'Auto'}
     </button>
   );
 }

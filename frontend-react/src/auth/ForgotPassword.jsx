@@ -3,35 +3,54 @@ import { useAuth } from '../context/AuthContext';
 import './auth.css';
 
 export default function ForgotPassword() {
-  const { sendOtp } = useAuth();
+  const { sendOtp, verifyOtp, changePassword } = useAuth();
   const [email, setEmail] = useState('');
-  const [otpSent, setOtpSent] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [step, setStep] = useState(1);
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
 
   const handleSendOtp = async (e) => {
     e.preventDefault();
+    setError('');
+    setSuccess('');
     if (!email) return setError('Vui lòng nhập email');
     const otpCode = await sendOtp(email);
     if (!otpCode) return setError('Không gửi được OTP');
-    setOtpSent(otpCode);
+    setSuccess('OTP đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.');
     setStep(2);
   };
 
-  const handleResetPassword = (e) => {
+  const handleResetPassword = async (e) => {
     e.preventDefault();
-    if (otp !== otpSent) return setError('OTP không đúng');
+    setError('');
+    setSuccess('');
     if (newPassword.length < 6) return setError('Mật khẩu mới phải ít nhất 6 ký tự');
-    // TODO: gọi API đổi mật khẩu thật
-    alert('Đổi mật khẩu thành công!');
+    
+    const isValid = await verifyOtp(email, otp);
+    if (!isValid) return setError('OTP không đúng hoặc đã hết hạn');
+    
+    const ok = await changePassword(email, newPassword);
+    if (ok) {
+      setSuccess('Đổi mật khẩu thành công!');
+      setTimeout(() => {
+        setStep(1);
+        setEmail('');
+        setOtp('');
+        setNewPassword('');
+        setSuccess('');
+      }, 2000);
+    } else {
+      setError('Đổi mật khẩu thất bại');
+    }
   };
 
   return (
     <div className="auth-container">
       <h1 className="auth-title">Quên mật khẩu</h1>
       {error && <div className="auth-error">{error}</div>}
+      {success && <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">{success}</div>}
 
       {step === 1 ? (
         <form onSubmit={handleSendOtp}>

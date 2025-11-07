@@ -1,9 +1,10 @@
 // src/components/home/FlashcardSection.jsx
 import React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import Link from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import '../home.css';
+import { fetchFlashcardTopicsFromDrive, defaultTopics } from '../../data/flashcardsLoader';
 
 export default function FlashcardSection() {
   const { user } = useAuth();
@@ -13,27 +14,33 @@ export default function FlashcardSection() {
   const [quizScore, setQuizScore] = useState(0);
   const [quizAnswers, setQuizAnswers] = useState([]); // Lưu câu sai để nhắc nhở
 
-  const card = {
-    front: "Xin chào", 
-    back: "Nâng tay phải lên trước mặt, lòng bàn tay hướng ra ngoài, vẫy nhẹ 2 lần",
-    image: "https://images.unsplash.com/photo-1581092588530-0d8e0d6e8a0f?w=400",
-  };
+  const [topics, setTopics] = useState(defaultTopics);
+  const sampleCard = topics?.[0]?.flashcards?.[0] || { front: 'Xin chào', back: 'Hello', image: null };
+
+  useEffect(() => {
+    const DRIVE_ID = '1i3ia03fKrHovFU1TnPZtIy-_32sxqDh9';
+    (async () => {
+      const remote = await fetchFlashcardTopicsFromDrive(DRIVE_ID);
+      if (remote) setTopics(remote);
+    })();
+  }, []);
 
   const quiz = [
     { q: "Ký hiệu 'Xin chào' nghĩa là gì?", options: ["Tạm biệt", "Xin chào", "Cảm ơn", "Xin lỗi"], correct: 1 },
   ];
 
   const toggleFavorite = () => {
-    if (favorites.includes(card.front)) {
-      setFavorites(favorites.filter(f => f !== card.front));
+    const key = sampleCard.front;
+    if (favorites.includes(key)) {
+      setFavorites(favorites.filter(f => f !== key));
     } else {
-      setFavorites([...favorites, card.front]);
+      setFavorites([...favorites, key]);
     }
   };
 
   const addNote = () => {
     if (note.trim()) {
-      console.log(`Ghi chú cho "${card.front}": ${note}`);
+      console.log(`Ghi chú cho "${sampleCard.front}": ${note}`);
       setNote('');
     }
   };
@@ -60,20 +67,20 @@ export default function FlashcardSection() {
           <div className="flashcard-container" onClick={() => setFlipped(!flipped)}>
             <div className={`flashcard ${flipped ? 'flipped' : ''}`}>
               <div className="flashcard-face front">
-                <img src={card.image} alt={card.front} className="w-full h-48 object-cover rounded-t-lg" />
+                {sampleCard.image && (<img src={sampleCard.image} alt={sampleCard.front} className="w-full h-48 object-cover rounded-t-lg" />)}
                 <div className="p-4">
-                  <h3 className="text-xl font-bold text-blue-600">{card.front}</h3>
-                  <button onClick={(e) => { e.stopPropagation(); toggleFavorite(); }} className="mt-2 text-sm">
-                    {favorites.includes(card.front) ? '❤️ Yêu thích' : '🤍 Lưu yêu thích'}
+                  <h3 className="text-xl font-bold text-blue-600">{sampleCard.front}</h3>
+                  <button onClick={(e) => { e.stopPropagation(); toggleFavorite(); }} className="btn-secondary mt-3">
+                    {favorites.includes(sampleCard.front) ? 'Bỏ yêu thích' : 'Lưu yêu thích'}
                   </button>
                 </div>
               </div>
               <div className="flashcard-face back">
-                <img src={card.image} alt={card.back} className="w-full h-48 object-cover rounded-t-lg" />
+                {sampleCard.image && (<img src={sampleCard.image} alt={sampleCard.back} className="w-full h-48 object-cover rounded-t-lg" />)}
                 <div className="p-4">
-                  <h3 className="text-xl font-bold text-purple-600">Nghĩa: {card.back}</h3>
-                  <button onClick={(e) => { e.stopPropagation(); toggleFavorite(); }} className="mt-2 text-sm">
-                    {favorites.includes(card.front) ? '❤️ Yêu thích' : '🤍 Lưu yêu thích'}
+                  <h3 className="text-xl font-bold text-purple-600">Nghĩa: {sampleCard.back}</h3>
+                  <button onClick={(e) => { e.stopPropagation(); toggleFavorite(); }} className="btn-secondary mt-3">
+                    {favorites.includes(sampleCard.front) ? 'Bỏ yêu thích' : 'Lưu yêu thích'}
                   </button>
                 </div>
               </div>

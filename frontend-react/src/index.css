@@ -6,10 +6,62 @@
   html {
     font-family: 'Be Vietnam Pro', sans-serif;
   }
+  
+  html.dark {
+    @apply bg-gray-900 text-white;
+  }
+  
+  html.dark body {
+    @apply bg-gray-900 text-white;
+  }
+
+  :root {
+    --color-primary: #3B82F6;
+    --color-secondary: #8B5CF6;
+    --color-bg: #F8FAFC;
+    --color-section-alt: #EEF2FF; /* soft lavender like reference */
+    --space-section-desktop: 64px;
+    --space-section-tablet: 40px;
+    --space-section-mobile: 24px;
+    --radius-card: 12px;
+    --radius-button: 8px;
+  }
 }
 
 @layer components {
-  .btn-primary {
-    @apply px-6 py-3 bg-primary text-white rounded-full font-semibold hover:bg-blue-700 transition shadow-lg;
+  .btn { @apply inline-flex items-center justify-center px-6 py-3 rounded-lg font-semibold transition; min-height: 44px; }
+  .btn-primary { @apply btn bg-primary text-white hover:bg-blue-700 shadow-lg; }
+  .btn-secondary { @apply btn bg-gray-600 text-white hover:bg-gray-700; }
+  .btn-link { @apply inline-flex items-center justify-center text-blue-600 hover:text-blue-800 underline; }
+  .btn-row { @apply flex flex-wrap gap-4; }
+  
+  .section-outer { padding-top: var(--space-section-desktop); padding-bottom: var(--space-section-desktop); }
+  .section-alt { background-color: var(--color-section-alt); }
+  .section-white { background-color: #FFFFFF; }
+  .container-1200 { max-width: 1200px; margin-left: auto; margin-right: auto; padding-left: 1.5rem; padding-right: 1.5rem; }
+  .card-surface { @apply bg-white shadow-md; border-radius: var(--radius-card); }
+  
+  .perspective-1000 {
+    perspective: 1000px;
   }
+  
+  .transform-style-3d {
+    transform-style: preserve-3d;
+  }
+  
+  .backface-hidden {
+    backface-visibility: hidden;
+  }
+  
+  .rotate-y-180 {
+    transform: rotateY(180deg);
+  }
+}
+
+@media (max-width: 1024px) {
+  .section-outer { padding-top: var(--space-section-tablet); padding-bottom: var(--space-section-tablet); }
+}
+
+@media (max-width: 640px) {
+  .section-outer { padding-top: var(--space-section-mobile); padding-bottom: var(--space-section-mobile); }
 }
