@@ -8,15 +8,8 @@ import './pages.css';
 export default function StatisticsPage() {
   const { user } = useAuth();
 
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg mb-4">Vui lòng đăng nhập để xem thống kê.</p>
-          <Link to="/login" className="btn-primary">Đăng nhập</Link>
-        </div>
-      </div>
-    );
+   if (!user) {
+    return <Navigate to="/login" replace />;
   }
 
   const stats = user.stats || {};

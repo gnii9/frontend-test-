@@ -9,13 +9,13 @@ import ContactPage from './pages/ContactPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import LearningChatPage from './pages/LearningChatPage';
-import NotificationPage from './pages/NotificationPage';
-import SettingPage from './pages/SettingPage';
 import ProfilePage from './pages/ProfilePage';
 import StatisticsPage from './pages/StatisticsPage';
 import AdminDashboard from './pages/AdminDashboard';
-import ForgotPasswordPage from './pages/ForgotPasswordPage';
-
+import RequestEmailPage from './pages/RequestEmailPage';
+import VerifyOtpPage from './pages/VerifyOTPPage';
+import ResetPasswordPage from './pages/ResetPasswordPage'
+import EditProfilePage from './pages/EditProfilePage';
 
 function App() {
   return (
@@ -24,19 +24,22 @@ function App() {
       <div className="pt-20">
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/forgot-password" element={<RequestEmailPage />} />
+          <Route path="/verifyOTP" element={<VerifyOtpPage/>}/>
+          <Route path="/reset-password" element={<ResetPasswordPage/>} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+
           <Route path="/flashcard" element={<FlashcardPage />} />
           <Route path="/practice" element={<LearningChatPage />} />
           <Route path="/progress" element={<ProgressPage />} />
           <Route path="/quiz/:topicId" element={<QuizPage />} />
           <Route path="/contact" element={<ContactPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/notifications" element={<NotificationPage />} />
-          <Route path="/settings" element={<SettingPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/profile/edit" element={<EditProfilePage/>}/>
           <Route path="/statistics" element={<StatisticsPage />} />
           <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          
         </Routes>
       </div>
     </>

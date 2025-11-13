@@ -1,6 +1,7 @@
 // src/pages/Home.jsx
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+
 import { useAuth } from '../context/AuthContext';
 import './pages.css';
 import '../components/home/home.css';
@@ -8,6 +9,7 @@ import '../components/home/home.css';
 export default function Home() {
   const { user } = useAuth();
   const [expandedFaq, setExpandedFaq] = useState(null);
+  const navigate = useNavigate();
 
   const faqs = [
     {
@@ -109,15 +111,20 @@ export default function Home() {
             Nền tảng đầu tiên tại Việt Nam dành riêng cho cộng đồng người khiếm thính.
           </p>
           <div className="flex gap-4 justify-center">
-            <Link to="/flashcard" className="btn-primary text-lg px-10 py-4">
+            <button
+              onClick={() => user ? navigate('/flashcard') : navigate('/login')}
+              className="btn-primary text-lg px-10 py-4"
+            >
               Bắt đầu học ngay
-            </Link>
+            </button>
+
             {!user && (
               <Link to="/register" className="btn-secondary text-lg px-10 py-4">
                 Đăng ký miễn phí
               </Link>
             )}
           </div>
+
         </div>
       </section>
 
