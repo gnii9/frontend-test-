@@ -1,30 +1,41 @@
-// src/auth/Login.jsx
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import GoogleLoginButton from './GoogleLoginButton';
 import './auth.css';
 
 export default function Login() {
-  const { loginWithEmail } = useAuth();
+  const { loginWithUsername } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ email: '', password: '' });
+  const location = useLocation();
+  const [form, setForm] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
+
+  // Nếu user đến từ trang bị bảo vệ (PrivateRoute), sẽ có location.state.from
+  const from = location.state?.from?.pathname || '/';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.email || !form.password) {
+    setError('');
+
+    if (!form.username || !form.password) {
       setError('Vui lòng nhập đầy đủ thông tin');
       return;
     }
-    const ok = await loginWithEmail(form.email, form.password);
-    if (ok) {
-      navigate('/profile');
-    } else {
-      setError('Đăng nhập thất bại');
+
+    try {
+      const ok = await loginWithUsername(form.username, form.password);
+      if (ok) {
+        // Quay lại trang trước hoặc trang chủ
+        navigate(from, { replace: true });
+      } else {
+        setError('Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Lỗi kết nối tới server');
     }
   };
-
 
   return (
     <div className="auth-container">
@@ -34,11 +45,11 @@ export default function Login() {
 
       <form onSubmit={handleSubmit}>
         <input
-          type="email"
-          placeholder="Email"
+          type="text"
+          placeholder="Tên đăng nhập"
           className="auth-input"
-          value={form.email}
-          onChange={(e) => setForm({ ...form, email: e.target.value })}
+          value={form.username}
+          onChange={(e) => setForm({ ...form, username: e.target.value })}
           required
         />
         <input
@@ -49,9 +60,11 @@ export default function Login() {
           onChange={(e) => setForm({ ...form, password: e.target.value })}
           required
         />
+
         <div className="text-right">
           <Link to="/forgot-password" className="auth-link">Quên mật khẩu?</Link>
         </div>
+
         <button type="submit" className="auth-button">Đăng nhập</button>
       </form>
 

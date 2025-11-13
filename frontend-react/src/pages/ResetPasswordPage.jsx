@@ -1,11 +1,11 @@
 import React from 'react';
-import ForgotPassword from '../auth/ForgotPassword';
+import ResetPassword from '../auth/ResetPassword'
 
-export default function ForgotPasswordPage() {
+export default function ResetPasswordPage() {
   return (
     <section className="section-outer section-alt">
       <div className="container-1200 flex justify-center">
-        <ForgotPassword />
+        <ResetPassword/>
       </div>
     </section>
   );
