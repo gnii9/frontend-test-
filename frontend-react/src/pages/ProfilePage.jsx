@@ -154,18 +154,6 @@ export default function ProfilePage() {
           Đổi mật khẩu
         </button>
         <button
-          onClick={() => setActiveTab('goals')}
-          className={`px-4 py-2 font-medium ${activeTab === 'goals' ? 'border-b-2 border-primary text-primary' : 'text-gray-600'}`}
-        >
-          Mục tiêu
-        </button>
-        <button
-          onClick={() => setActiveTab('favorites')}
-          className={`px-4 py-2 font-medium ${activeTab === 'favorites' ? 'border-b-2 border-primary text-primary' : 'text-gray-600'}`}
-        >
-          Yêu thích
-        </button>
-        <button
           onClick={() => setActiveTab('checkin')}
           className={`px-4 py-2 font-medium ${activeTab === 'checkin' ? 'border-b-2 border-primary text-primary' : 'text-gray-600'}`}
         >
