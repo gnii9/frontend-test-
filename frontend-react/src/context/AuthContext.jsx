@@ -34,33 +34,73 @@ export function AuthProvider({ children }) {
     localStorage.setItem("notifications", JSON.stringify(notifications));
   }, [notifications]);
 
+  
   // ===================== UTILS =====================
   const addNotification = (msg) => setNotifications(prev => [...prev, msg]);
 
-  const authHeaders = () => ({
-    "Content-Type": "application/json",
-    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-  });
+  const authHeaders = () => {
+    const accessToken = localStorage.getItem("access"); // lấy access token hiện tại
+    return {
+      "Content-Type": "application/json",
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    };
+  };
+ // ===================== HELPERS =====================
+  const normalizeSex = (raw) => {
+    if (!raw) return "";
+    const map = { nam: "male", "nữ": "female", nu: "female", khác: "other", khac: "other" };
+    return map[raw.toLowerCase()] || raw.toLowerCase() || "";
+  };
+
+  const normalizeDate = (raw) => {
+    if (!raw) return "";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    const parts = raw.split("/");
+    if (parts.length !== 3) return "";
+    const [day, month, year] = parts;
+    if (!day || !month || !year) return "";
+    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+  };
+
+  const convertToApiDate = (iso) => {
+    if (!iso) return "";
+    const parts = iso.split("-");
+    if (parts.length !== 3) return "";
+    const [year, month, day] = parts;
+    if (!year || !month || !day) return "";
+    return `${day}/${month}/${year}`;
+  };
+
 
   // ===================== AUTH API =====================
-  const loginWithUsername = async (username, password) => {
-    try {
-      const res = await fetch(`${API_BASE}/login/`, {
-        method: "POST",
-        headers: authHeaders(),
-        body: JSON.stringify({ username, password }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Đăng nhập thất bại");
+const loginWithUsername = async (username, password) => {
+  try {
+    const res = await fetch(`${API_BASE}/login/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
 
-      setUser(data.user);
-      setAccessToken(data.tokens?.access);
-      return { success: true, user: data.user };
-    } catch (err) {
-      console.error(err);
-      return { success: false, message: err.message };
+    const data = await res.json();
+
+    if (!res.ok) {
+      console.error("Login failed:", data.error);
+      return { success: false, message: data.error };
     }
-  };
+
+    // ✅ Lưu access + refresh token đúng key
+    localStorage.setItem("access", data.tokens.access);
+    localStorage.setItem("refresh", data.tokens.refresh);
+
+    // ✅ Lưu thông tin user vào state
+    setUser(data.user);
+
+    return { success: true, message: data.message };
+  } catch (err) {
+    console.error("Login error:", err);
+    return { success: false, message: "Login error" };
+  }
+};
 
   const loginWithGoogle = async (credentialResponse) => {
     try {
@@ -143,21 +183,24 @@ export function AuthProvider({ children }) {
     }
   };
 
- const fetchProfile = async () => {
+const fetchProfile = async () => {
   try {
-    const res = await fetch(`${API_BASE}/profile/`, { headers: authHeaders() });
+    const res = await fetch(`${API_BASE}/profile/`, {
+      headers: authHeaders()
+    });
+
     const data = await res.json();
 
     if (data.user) {
-      // Map key backend → frontend
       setUser(prev => ({
         ...prev,
-        name: data.user.name || '',           // from first_name
-        email: data.user.email || '',
-        gender: data.user.sex || '',          // from sex
-        dob: data.user.date_of_birth || ''    // from date_of_birth
+        username: data.user.username || "",
+        email: data.user.email || "",
+        sex: normalizeSex(data.user.sex),
+        dob: normalizeDate(data.user.date_of_birth)
       }));
     }
+
     return data;
   } catch (err) {
     console.error(err);
@@ -165,41 +208,37 @@ export function AuthProvider({ children }) {
   }
 };
 
-const updateProfile = async (updates) => {
+const updateProfile = async ({ username, email, sex, dob }) => {
   try {
-    // Map frontend → backend key
-    const backendUpdates = {
-      username: updates.username,
-      email: updates.email,
-      sex: updates.sex,
-      date_of_birth: updates.date_of_birth, // key backend
-    };
-
     const res = await fetch(`${API_BASE}/profile/update/`, {
       method: "POST",
       headers: authHeaders(),
-      body: JSON.stringify(backendUpdates),
+      body: JSON.stringify({
+        username,
+        email,
+        sex,
+        date_of_birth: convertToApiDate(dob)
+      }),
     });
+
     const data = await res.json();
 
-    if (data.success) {
-      // Cập nhật state frontend với key chuẩn
-      setUser(prev => ({
-        ...prev,
-        username: updates.username || prev.username,
-        email: updates.email || prev.email,
-        sex: updates.sex || prev.sex,
-        dob: updates.date_of_birth || prev.dob
-      }));
-    }
+    if (!data.success) throw new Error(data.message || "Cập nhật thất bại");
 
-    return data;
+    // Cập nhật user trong context
+    setUser(prev => ({
+      ...prev,
+      username: data.user.username,
+      email: data.user.email,
+      sex: normalizeSex(data.user.sex),
+      dob: normalizeDate(data.user.date_of_birth)
+    }));
+
+    return { success: true, message: "Cập nhật thành công!" };
   } catch (err) {
-    console.error(err);
-    return { error: "Không thể cập nhật profile" };
+    return { success: false, message: err.message || "Không thể cập nhật profile" };
   }
 };
-
 
   const updateStats = (stats) => {
     setUser(prev => ({
@@ -226,18 +265,45 @@ const updateProfile = async (updates) => {
     });
   };
 
-  const logout = async () => {
-    try {
-      await fetch(`${API_BASE}/logout/`, {
-        method: "POST",
-        headers: authHeaders(),
-      });
-    } catch (err) {
-      console.warn("Server logout failed:", err);
-    }
+const logout = async () => {
+  const refresh = localStorage.getItem("refresh");
+
+  if (!refresh) {
+    console.warn("No refresh token found. Logging out locally.");
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
     setUser(null);
-    setAccessToken(null);
-  };
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/logout/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ refresh })
+    });
+
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+      console.log("Logout thành công:", data.message);
+    } else {
+      console.error("Logout thất bại:", data.message);
+    }
+  } catch (err) {
+    console.error("Logout error:", err);
+  } finally {
+    // Luôn xóa token localStorage
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
+    setUser(null);
+  }
+};
+
+
+
 
   return (
     <AuthContext.Provider

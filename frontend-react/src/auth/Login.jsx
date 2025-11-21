@@ -61,11 +61,10 @@ export default function Login() {
           required
         />
 
+        <button type="submit" className="auth-button">Đăng nhập</button>
         <div className="text-right">
           <Link to="/forgot-password" className="auth-link">Quên mật khẩu?</Link>
-        </div>
-
-        <button type="submit" className="auth-button">Đăng nhập</button>
+        </div>        
       </form>
 
       <div className="auth-divider">Hoặc</div>

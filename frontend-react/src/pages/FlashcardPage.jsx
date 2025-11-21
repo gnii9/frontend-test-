@@ -1,400 +1,424 @@
 // src/pages/FlashcardPage.jsx
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import './pages.css';
-import { fetchFlashcardTopicsFromDrive, defaultTopics } from '../data/flashcardsLoader';
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import "./pages.css";
+import YouTube from "react-youtube";
 
 export default function FlashcardPage() {
-  const { user, addToFavorites, removeFromFavorites, addWrongVocabulary, updateStats } = useAuth();
-  const navigate = useNavigate();
+    const { user, addToFavorites, removeFromFavorites, addWrongVocabulary, updateStats } = useAuth();
+    const navigate = useNavigate();
 
-  const [selectedTopic, setSelectedTopic] = useState(null);
-  const [currentCardIndex, setCurrentCardIndex] = useState(0);
-  const [isFlipped, setIsFlipped] = useState(false);
-  const [notes, setNotes] = useState({});
-  const [showQuiz, setShowQuiz] = useState(false);
-  const [quizAnswers, setQuizAnswers] = useState({});
-  const [wrongQuestions, setWrongQuestions] = useState([]);
+    const [topics, setTopics] = useState([]);
+    const [selectedTopic, setSelectedTopic] = useState(null);
 
-  const [topics, setTopics] = useState(defaultTopics);
+    const [flashcards, setFlashcards] = useState([]);
+    const [testQuestions, setTestQuestions] = useState([]);
 
-  useEffect(() => {
-    const DRIVE_ID = '1i3ia03fKrHovFU1TnPZtIy-_32sxqDh9';
-    (async () => {
-      const remote = await fetchFlashcardTopicsFromDrive(DRIVE_ID);
-      if (remote) setTopics(remote);
-    })();
-  }, []);
+    const [currentCardIndex, setCurrentCardIndex] = useState(0);
+    const [isFlipped, setIsFlipped] = useState(false);
 
-  const topicQuizzes = {
-    1: [
-        {
-          id: 1,
-          question: "Xin chào trong tiếng Anh là gì?",
-          options: ["Hello", "Goodbye", "Thanks", "Please"],
-          correct: "Hello"
-        },
-        {
-          id: 2,
-          question: "Tạm biệt trong tiếng Anh là gì?",
-          options: ["Hello", "Goodbye", "Thanks", "Please"],
-          correct: "Goodbye"
-        },
-        {
-          id: 3,
-          question: "Cảm ơn trong tiếng Anh là gì?",
-          options: ["Hello", "Goodbye", "Thanks", "Please"],
-          correct: "Thanks"
+    const [showQuiz, setShowQuiz] = useState(false);
+    const [quizAnswers, setQuizAnswers] = useState({});
+    const [wrongQuestions, setWrongQuestions] = useState([]);
+
+    // ======================
+    // LOAD TOPICS
+    // ======================
+    useEffect(() => {
+        async function loadTopics() {
+            const res = await fetch("http://localhost:8000/api/learning/topics/");
+            const data = await res.json();
+            setTopics(data); // backend trả ARRAY
         }
-    ],
-    2: [
-        {
-          id: 4,
-          question: "Từ 'Mẹ' trong tiếng Anh là gì?",
-          options: ["Father", "Mother", "Sister", "Brother"],
-          correct: "Mother"
-        },
-        {
-          id: 5,
-          question: "Từ 'Cha' trong tiếng Anh là gì?",
-          options: ["Father", "Mother", "Sister", "Brother"],
-          correct: "Father"
+        loadTopics();
+    }, []);
+
+    // ======================
+    // LOAD FLASHCARDS + QUESTIONS
+    // ======================
+    const selectTopic = async (topic) => {
+        setSelectedTopic(topic);
+        setIsFlipped(false);
+        setCurrentCardIndex(0);
+
+        // flashcards
+        const res1 = await fetch(`http://localhost:8000/api/learning/topics/${topic.id}/flashcards/`);
+        const data1 = await res1.json();
+        setFlashcards(data1.flashcards);
+
+        // test questions
+        const res2 = await fetch(`http://localhost:8000/api/learning/topics/${topic.id}/test-questions/`);
+        const data2 = await res2.json();
+        setTestQuestions(data2.questions);
+    };
+
+    const currentCard = flashcards[currentCardIndex];
+
+    const handleFlip = () => setIsFlipped(!isFlipped);
+
+    const handleNext = () => {
+        if (currentCardIndex < flashcards.length - 1) {
+            setCurrentCardIndex(currentCardIndex + 1);
+            setIsFlipped(false);
         }
-    ],
-  };
+    };
 
-  const currentTopic = selectedTopic ? topics.find(t => t.id === selectedTopic.id) : null;
-  const currentCard = currentTopic && currentTopic.flashcards[currentCardIndex];
-  const isFavorite = currentCard && user?.favorites?.flashcards?.some(f => f.id === currentCard.id);
-  const currentQuiz = currentTopic?.quiz || topicQuizzes[currentTopic?.id] || topicQuizzes[String(currentTopic?.id)] || [];
+    const handlePrev = () => {
+        if (currentCardIndex > 0) {
+            setCurrentCardIndex(currentCardIndex - 1);
+            setIsFlipped(false);
+        }
+    };
 
-  useEffect(() => {
-    // Load notes from localStorage
-    const savedNotes = localStorage.getItem(`notes_${user?.id}`);
-    if (savedNotes) {
-      setNotes(JSON.parse(savedNotes));
-    }
-  }, [user]);
+    // ======================
+    // QUIZ MAPPING BACKEND
+    // ======================
+    const mappedQuiz = testQuestions.map((q) => ({
+        id: q.test_id,
+        flashcard_id: q.flashcard_id,     // 🔥 Quan trọng
+        question: q.question,
+        front_text: q.front_text,
+        back_text: q.back_text,
+        media_url: q.media_url,
+        options: [
+            q.options.A,
+            q.options.B,
+            q.options.C,
+            q.options.D
+        ],
+        correct: q.correct_option
+    }));
 
-  const saveNotes = () => {
-    if (user) {
-      localStorage.setItem(`notes_${user.id}`, JSON.stringify(notes));
-    }
-  };
 
-  const handleFlip = () => {
-    setIsFlipped(!isFlipped);
-  };
+    // ======================
+    // ANSWER SUBMIT
+    // ======================
+    const handleQuizAnswer = async (questionId, optionIndex) => {
+        const optionKey = ["A", "B", "C", "D"][optionIndex];
 
-  const handleNext = () => {
-    if (currentCardIndex < currentTopic.flashcards.length - 1) {
-      setCurrentCardIndex(currentCardIndex + 1);
-      setIsFlipped(false);
-    }
-  };
+        // Update UI ngay
+        setQuizAnswers((prev) => ({
+            ...prev,
+            [questionId]: optionKey,
+        }));
 
-  const handlePrev = () => {
-    if (currentCardIndex > 0) {
-      setCurrentCardIndex(currentCardIndex - 1);
-      setIsFlipped(false);
-    }
-  };
+        // Tìm câu hỏi trong mappedQuiz
+        const question = mappedQuiz.find((q) => q.id === questionId);
+        if (!question) return;
 
-  const handleFavorite = () => {
-    if (!currentCard || !user) return;
-    
-    if (isFavorite) {
-      removeFromFavorites('flashcards', currentCard.id);
-    } else {
-      addToFavorites('flashcards', {
-        id: currentCard.id,
-        title: currentCard.front,
-        topic: currentTopic.name
-      });
-    }
-  };
+        const token = localStorage.getItem("accessToken");
+        console.log(token)
 
-  const handleNoteChange = (value) => {
-    if (!currentCard) return;
-    const newNotes = { ...notes, [currentCard.id]: value };
-    setNotes(newNotes);
-    saveNotes();
-  };
+        try {
+            await fetch("http://localhost:8000/api/learning/topics/submit_answer/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({
+                    question_id: questionId,
+                    answer: optionKey,
+                }),
 
-  const handleQuizAnswer = (questionId, answer) => {
-    const question = currentQuiz.find(q => q.id === questionId);
-    if (!question) return;
+            });
+        } catch (err) {
+            console.error("Lỗi khi gửi submit_answer:", err);
+        }
 
-    setQuizAnswers({ ...quizAnswers, [questionId]: answer });
-    
-    if (answer !== question.correct) {
-      if (!wrongQuestions.includes(questionId)) {
-        setWrongQuestions([...wrongQuestions, questionId]);
-        addWrongVocabulary(`quiz_${questionId}`, question.question);
-      }
-    }
-  };
+        // Ghi lại câu sai vào hệ thống "từ sai"
+        if (optionKey !== question.correct) {
+            setWrongQuestions((prev) =>
+                prev.includes(questionId) ? prev : [...prev, questionId]
+            );
+            addWrongVocabulary(`quiz_${questionId}`, question.question);
+        }
+    };
 
-  const handleFinishQuiz = () => {
-    const quizSet = currentQuiz;
-    const totalQuestions = quizSet.length;
-    if (totalQuestions === 0) {
-      setShowQuiz(false);
-      setQuizAnswers({});
-      return;
-    }
+    const handleFinishQuiz = async () => {
+        if (!selectedTopic) return;
 
-    const correctCount = quizSet.filter(q => quizAnswers[q.id] === q.correct).length;
-    const score = Math.round((correctCount / totalQuestions) * 100);
+        const token = localStorage.getItem("accessToken");
+        console.log(token)
 
-    updateStats({
-      testScores: [...(user.stats?.testScores || []), score]
-    });
+        // 🔥 Gom kết quả cho từng flashcard
+        const results = mappedQuiz.map((q) => {
+            const userAns = quizAnswers[q.id];
+            const isCorrect = userAns === q.correct;
 
-    alert(`Bạn đã hoàn thành! Điểm: ${score}% (${correctCount}/${totalQuestions})`);
-    setShowQuiz(false);
-    setQuizAnswers({});
-  };
+            return {
+                flashcard_id: q.flashcard_id,
+                correct: isCorrect ? 1 : 0,
+                wrong: isCorrect ? 0 : 1
+            };
+        });
 
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg mb-4">Vui lòng đăng nhập để xem flashcard.</p>
-          <button onClick={() => navigate('/login')} className="btn-primary">Đăng nhập</button>
-        </div>
-      </div>
-    );
-  }
+        try {
+            const res = await fetch(
+                "http://localhost:8000/api/learning/topics/finish_quiz/",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    },
+                    body: JSON.stringify({
+                        topic_id: selectedTopic.id,
+                        results: results      // 🔥 gửi danh sách kết quả
+                    }),
+                }
+            );
 
-  return (
-    <section className="section-outer section-alt">
-      <div className="container-1200">
-        <h1 className="text-4xl font-bold text-primary mb-8 text-center">Flashcard theo chủ đề</h1>
+            const data = await res.json();
 
-        {!selectedTopic ? (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {topics.map((topic) => (
-              <button
-                key={topic.id}
-                onClick={() => {
-                  setSelectedTopic(topic);
-                  setCurrentCardIndex(0);
-                  setIsFlipped(false);
-                }}
-                className="p-8 bg-white rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:scale-105 text-left"
-              >
-                <h2 className="text-2xl font-bold text-primary mb-2">{topic.name}</h2>
-                <p className="text-gray-600">{topic.flashcards.length} flashcard</p>
-              </button>
-            ))}
-          </div>
-        ) : !showQuiz ? (
-          <div className="space-y-6">
-            {/* Header */}
-            <div className="flex justify-between items-center">
-              <button
-                onClick={() => {
-                  setSelectedTopic(null);
-                  setCurrentCardIndex(0);
-                  setIsFlipped(false);
-                }}
-                className="text-gray-600 hover:text-primary"
-              >
-                Quay lại danh sách
-              </button>
-              <h2 className="text-2xl font-bold text-primary">{currentTopic.name}</h2>
-              <div className="text-gray-600">
-                {currentCardIndex + 1} / {currentTopic.flashcards.length}
-              </div>
-            </div>
-
-            {/* Flashcard - Quizlet style */}
-            <div className="relative">
-              <div
-                className="relative w-full h-96 cursor-pointer"
-                style={{ perspective: '1000px' }}
-                onClick={handleFlip}
-              >
-                <div
-                  className="relative w-full h-full transition-transform duration-500"
-                  style={{
-                    transformStyle: 'preserve-3d',
-                    transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)'
-                  }}
-                >
-                  {/* Front */}
-                  <div
-                    className="absolute inset-0 w-full h-full bg-white rounded-2xl shadow-2xl flex items-center justify-center p-8 border-4 border-blue-200"
-                    style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
-                  >
-                    <div className="text-center">
-                      <div className="text-6xl mb-4"></div>
-                      <h3 className="text-4xl font-bold text-primary">{currentCard?.front}</h3>
-                      <p className="text-gray-500 mt-4 text-lg">Nhấp để lật</p>
-                    </div>
-                  </div>
-
-                  {/* Back */}
-                  <div
-                    className="absolute inset-0 w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-2xl flex items-center justify-center p-8 text-white"
-                    style={{ 
-                      backfaceVisibility: 'hidden', 
-                      WebkitBackfaceVisibility: 'hidden',
-                      transform: 'rotateY(180deg)' 
-                    }}
-                  >
-                    <div className="text-center">
-                      <h3 className="text-4xl font-bold mb-4">{currentCard?.back}</h3>
-                      <p className="text-xl opacity-90">{currentCard?.front}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Favorite button (standalone) */}
-              <div className="mt-4 text-center">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleFavorite();
-                  }}
-                  className="btn-secondary"
-                >
-                  {isFavorite ? 'Bỏ yêu thích' : 'Lưu yêu thích'}
-                </button>
-              </div>
-            </div>
-
-            {/* Navigation */}
-            <div className="flex justify-center gap-4">
-              <button
-                onClick={handlePrev}
-                disabled={currentCardIndex === 0}
-                className="px-6 py-3 bg-white rounded-lg shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Bài trước
-              </button>
-              <button
-                onClick={handleFlip}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg shadow-md hover:shadow-lg"
-              >
-                {isFlipped ? 'Xem mặt trước' : 'Lật thẻ'}
-              </button>
-              <button
-                onClick={handleNext}
-                disabled={currentCardIndex === currentTopic.flashcards.length - 1}
-                className="px-6 py-3 bg-white rounded-lg shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Bài tiếp
-              </button>
-            </div>
-
-            {/* Notes */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="font-bold text-lg mb-3">Ghi chú</h3>
-              <textarea
-                value={notes[currentCard?.id] || ''}
-                onChange={(e) => handleNoteChange(e.target.value)}
-                placeholder="Viết ghi chú cho flashcard này..."
-                className="w-full p-4 border rounded-lg min-h-[100px] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                onBlur={saveNotes}
-              />
-            </div>
-
-            {/* Quiz button */}
-            <div className="text-center">
-              <button
-                onClick={() => setShowQuiz(true)}
-                className="px-8 py-4 bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-xl shadow-lg hover:shadow-xl text-lg font-semibold"
-              >
-                Củng cố kiến thức - Làm Quiz
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <button
-                onClick={() => setShowQuiz(false)}
-                className="text-gray-600 hover:text-primary"
-              >
-                Quay lại flashcard
-              </button>
-              <h2 className="text-2xl font-bold text-primary">Quiz: {currentTopic.name}</h2>
-              <div className="text-gray-600">
-                {Object.keys(quizAnswers).length} / {currentQuiz.length}
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              {currentQuiz.map((question, index) => {
-                const userAnswer = quizAnswers[question.id];
-                const isCorrect = userAnswer === question.correct;
-                const isWrong = userAnswer && !isCorrect;
-
-                return (
-                  <div
-                    key={question.id}
-                    className={`bg-white rounded-xl shadow-lg p-6 border-2 ${
-                      isCorrect ? 'border-green-500' : isWrong ? 'border-red-500' : 'border-gray-200'
-                    }`}
-                  >
-                    <h3 className="text-xl font-bold mb-4">
-                      Câu {index + 1}: {question.question}
-                    </h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      {question.options.map((option) => (
-                        <button
-                          key={option}
-                          onClick={() => handleQuizAnswer(question.id, option)}
-                          disabled={!!userAnswer}
-                          className={`p-4 rounded-lg border-2 transition-all ${
-                            userAnswer === option
-                              ? isCorrect
-                                ? 'bg-green-100 border-green-500 text-green-700'
-                                : 'bg-red-100 border-red-500 text-red-700'
-                              : option === question.correct && userAnswer
-                              ? 'bg-green-100 border-green-500 text-green-700'
-                              : 'border-gray-200 hover:border-blue-500 hover:bg-blue-50'
-                          } disabled:cursor-not-allowed`}
-                        >
-                          {option}
-                        </button>
-                      ))}
-                    </div>
-                    {isWrong && (
-                      <p className="mt-4 text-red-600 font-semibold">
-                        Sai! Đáp án đúng là: {question.correct}
-                      </p>
-                    )}
-                    {isCorrect && (
-                      <p className="mt-4 text-green-600 font-semibold">Chính xác!</p>
-                    )}
-                  </div>
+            if (data.success) {
+                alert(
+                    `Hoàn thành Quiz chủ đề "${selectedTopic.title}"\n` +
+                    `Tổng câu: ${mappedQuiz.length}\n` +
+                    `Đúng: ${data.total_correct}\nSai: ${data.total_wrong}\n` +
+                    `Điểm: ${data.correct_rate}%`
                 );
-              })}
-            </div>
+            } else {
+                alert(data.error || "Có lỗi khi tổng kết quiz.");
+            }
+        } catch (err) {
+            console.error("Lỗi finish_quiz:", err);
+        }
 
-            {currentQuiz.length > 0 && Object.keys(quizAnswers).length === currentQuiz.length && (
-              <div className="text-center">
-                <button
-                  onClick={handleFinishQuiz}
-                  className="px-8 py-4 bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-xl shadow-lg hover:shadow-xl text-lg font-semibold"
-                >
-                  Hoàn thành Quiz
-                </button>
-                {wrongQuestions.length > 0 && (
-                  <p className="mt-4 text-red-600">
-                    Bạn đã sai {wrongQuestions.length} câu. Hệ thống sẽ nhắc bạn ôn tập lại!
-                  </p>
+        setShowQuiz(false);
+        setQuizAnswers({});
+        setWrongQuestions([]);
+    };
+
+
+
+    function getYoutubeId(url) {
+        if (!url) return null;
+        const match = url.match(/(?:youtu\.be\/|watch\?v=)([^&]+)/);
+        return match ? match[1] : null;
+    }
+
+
+
+    if (!user) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <p>Bạn cần đăng nhập để xem nội dung</p>
+                <button onClick={() => navigate("/login")} className="btn-primary">Đăng nhập</button>
+            </div>
+        );
+    }
+
+    return (
+        <section className="section-outer section-alt">
+            <div className="container-1200">
+
+                <h1 className="text-4xl mb-8 text-center font-bold text-primary">Flashcard theo chủ đề</h1>
+
+                {/* ===================== TOPIC LIST ===================== */}
+                {!selectedTopic && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                        {topics.map((t) => (
+                            <button
+                                key={t.id}
+                                onClick={() => selectTopic(t)}
+                                className="p-6 bg-white shadow rounded-xl hover:shadow-xl transition"
+                            >
+                                <h2 className="text-xl font-bold text-primary">{t.title}</h2>
+                                <p className="text-sm text-gray-500">{t.flashcard_count} thẻ</p>
+                            </button>
+                        ))}
+                    </div>
                 )}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </section>
-  );
+
+                {/* ===================== FLASHCARD MODE ===================== */}
+                {selectedTopic && !showQuiz && (
+                    <div className="space-y-6">
+
+                        {/* Header */}
+                        <div className="flex justify-between items-center">
+                            <button onClick={() => setSelectedTopic(null)}>← Quay lại</button>
+                            <h2 className="text-2xl font-bold">{selectedTopic.title}</h2>
+                            <div>{currentCardIndex + 1}/{flashcards.length}</div>
+                        </div>
+
+                        {/* Flashcard */}
+                        <div
+                            className="relative w-full h-96 cursor-pointer"
+                            style={{ perspective: "1000px" }}
+                            onClick={handleFlip}
+                        >
+                            {/* Wrapper */}
+                            <div
+                                className="absolute inset-0 transition-all duration-500"
+                                style={{
+                                    transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
+                                    transformStyle: "preserve-3d",
+                                }}
+                            >
+
+                                {/* Front */}
+                                <div
+                                    className="absolute inset-0 bg-white rounded-xl shadow-lg flex items-center justify-center p-4"
+                                    style={{ backfaceVisibility: "hidden" }}
+                                >
+                                    {(() => {
+                                        const videoId = getYoutubeId(currentCard?.media);
+
+                                        if (videoId) {
+                                            return (
+                                                <div className="w-full h-64 rounded-xl overflow-hidden shadow border">
+                                                    <YouTube
+                                                        key={videoId}             // ✔ KHỞI TẠO PLAYER MỚI
+                                                        videoId={videoId}
+                                                        opts={{
+                                                            width: "100%",
+                                                            height: "100%",
+                                                            playerVars: {
+                                                                autoplay: 1,
+                                                                controls: 1,
+                                                                loop: 1,
+                                                                playlist: videoId,
+                                                                rel: 0,
+                                                                modestbranding: 1,
+                                                            },
+                                                        }}
+                                                        className="w-full h-full"
+                                                    />
+
+                                                </div>
+                                            );
+                                        }
+
+                                        return (
+                                            <h3 className="text-4xl font-bold text-center">
+                                                {currentCard?.front_text}
+                                            </h3>
+                                        );
+                                    })()}
+                                </div>
+
+                                {/* Back */}
+                                <div
+                                    className="absolute inset-0 bg-blue-600 text-white rounded-xl shadow-lg flex items-center justify-center p-8"
+                                    style={{
+                                        backfaceVisibility: "hidden",
+                                        transform: "rotateY(180deg)",
+                                    }}
+                                >
+                                    <div className="p-8 bg-blue-600 rounded-xl text-white text-center">
+                                        <p className="text-xl whitespace-pre-wrap">{currentCard?.front_text}</p>
+                                        <p className="text-xl whitespace-pre-wrap mt-4">{currentCard?.back_text}</p>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        {/* Navigation */}
+                        <div className="flex justify-center gap-4">
+                            <button onClick={handlePrev} className="btn-secondary">Bài trước</button>
+                            <button onClick={handleFlip} className="btn-secondary">Lật thẻ</button>
+                            <button onClick={handleNext} className="btn-secondary">Bài tiếp</button>
+                        </div>
+
+                        {/* Quiz Button */}
+                        <div className="text-center">
+                            <button className="btn-primary px-6 py-3" onClick={() => setShowQuiz(true)}>
+                                Làm Quiz
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* ===================== QUIZ MODE ===================== */}
+                {selectedTopic && showQuiz && (
+                    <div className="space-y-6 pb-10">
+                        <button onClick={() => setShowQuiz(false)}>← Quay lại Flashcard</button>
+
+                        {mappedQuiz.map((q, i) => {
+                            const userAnswer = quizAnswers[q.id];
+                            const videoId = getYoutubeId(q.media_url);
+
+                            return (
+                                <div key={q.id} className="p-6 bg-white rounded-xl shadow space-y-4">
+                                    {/* Câu hỏi */}
+                                    <h3 className="font-bold text-xl">
+                                        Câu {i + 1}: {q.question}
+                                    </h3>
+
+                                    {/* Video */}
+                                    {videoId && (
+                                        <div className="w-full h-64 rounded-xl overflow-hidden shadow border">
+                                            <YouTube
+                                                videoId={videoId}
+                                                opts={{
+                                                    width: "100%",
+                                                    height: "100%",
+                                                    playerVars: {
+                                                        autoplay: 0,
+                                                        controls: 1,
+                                                        loop: 1,
+                                                        playlist: videoId,
+                                                        rel: 0,
+                                                        modestbranding: 1,
+                                                        iv_load_policy: 3,
+                                                    },
+                                                }}
+                                                className="w-full h-full"
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Đáp án */}
+                                    <div className="grid grid-cols-2 gap-4 mt-2">
+                                        {q.options.map((op, idx) => {
+                                            const optionKey = ["A", "B", "C", "D"][idx];
+                                            const isCorrect = optionKey === q.correct;
+
+                                            return (
+                                                <button
+                                                    key={idx}
+                                                    onClick={() => handleQuizAnswer(q.id, idx)}
+                                                    disabled={!!userAnswer}
+                                                    className={`p-3 rounded-lg border transition-all text-left 
+                                                    ${userAnswer === optionKey
+                                                            ? isCorrect
+                                                                ? "bg-green-200 border-green-600"
+                                                                : "bg-red-200 border-red-600"
+                                                            : "hover:bg-gray-100"
+                                                        }`}
+                                                >
+                                                    <span className="font-bold">{optionKey}.</span> {op}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Kết quả */}
+                                    {userAnswer && (
+                                        <p className="mt-3 font-semibold">
+                                            {userAnswer === q.correct
+                                                ? "✔ Chính xác!"
+                                                : `❌ Sai, đáp án đúng: ${q.correct}`}
+                                        </p>
+                                    )}
+                                </div>
+                            );
+                        })}
+
+                        {/* Nút hoàn thành */}
+                        {Object.keys(quizAnswers).length === mappedQuiz.length && (
+                            <div className="text-center mt-6">
+                                <button onClick={handleFinishQuiz} className="btn-primary px-8 py-3">
+                                    Hoàn thành Quiz
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+        </section>
+    );
 }
