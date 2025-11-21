@@ -117,24 +117,43 @@ export default function LearningChatPage() {
       const ctx = canvas.getContext("2d");
       ctx.drawImage(videoRef.current, 0, 0);
 
+      // Lấy frame dưới dạng Blob
       const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg"));
+      if (!blob) return;
+
       const formData = new FormData();
-      formData.append("file", blob);
+      formData.append("file", blob, "frame.jpg"); // tên file tùy ý
 
       try {
-        const res = await fetch("http://localhost:8000/predict", {
+        const res = await fetch("http://localhost:8001/predict", {
           method: "POST",
           body: formData,
         });
+
+        if (!res.ok) {
+          console.error("ST-GCN response not OK:", res.status);
+          return;
+        }
+
         const data = await res.json();
-        handleLabel(data.label);
+        // data = { label, confidence }
+        const label = data.label || "unknown";
+        const conf = data.confidence !== undefined ? data.confidence.toFixed(2) : "-";
+
+        setFeedback({ status: "ok", message: `${label} (${conf})` });
+
+        // Có thể gọi LLM khi confidence đủ cao
+        // if (parseFloat(conf) > 0.7) handleLabel(label);
+
       } catch (err) {
         console.error("Error predicting label:", err);
+        setFeedback({ status: "error", message: "Không nhận diện được." });
       }
-    }, 200); // 5 FPS
+    }, 200); // ~5 FPS
 
     return () => clearInterval(interval);
   }, [step, streaming]);
+
 
   // ---- Chat helpers ----
   const addChatMessage = (role, text) => {
