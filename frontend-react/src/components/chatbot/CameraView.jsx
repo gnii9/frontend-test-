@@ -1,30 +1,35 @@
-// src/components/chatbot/CameraView.jsx
-import React from 'react';
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from "react";
 
 export default function CameraView() {
   const videoRef = useRef(null);
+
+  const stopCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const tracks = videoRef.current.srcObject.getTracks();
+      tracks.forEach((track) => track.stop());
+      videoRef.current.srcObject = null;
+    }
+  };
 
   useEffect(() => {
     const startCamera = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
+        if (videoRef.current) videoRef.current.srcObject = stream;
       } catch (err) {
-        console.error('Lỗi truy cập camera:', err);
+        console.error("Lỗi truy cập camera:", err);
       }
     };
 
     startCamera();
 
-    return () => {
-      if (videoRef.current && videoRef.current.srcObject) {
-        const tracks = videoRef.current.srcObject.getTracks();
-        tracks.forEach((track) => track.stop());
-      }
-    };
+    return () => stopCamera();
+  }, []);
+
+  // Nghe event từ trang → tắt camera
+  useEffect(() => {
+    window.addEventListener("force-stop-camera", stopCamera);
+    return () => window.removeEventListener("force-stop-camera", stopCamera);
   }, []);
 
   return (
